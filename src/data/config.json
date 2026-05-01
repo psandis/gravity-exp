@@ -1,0 +1,34 @@
+{
+  "scene": {
+    "defaultSpeedMultiplier": 1.0,
+    "maxSpeedMultiplier": 20,
+    "earthVisualRotationSeconds": 120,
+    "cameraFov": 60,
+    "cameraStartPosition": [0, 40, 80],
+    "orbitMinDistance": 2,
+    "orbitMaxDistance": 200,
+    "orbitDampingFactor": 0.05,
+    "starCount": 6000,
+    "starRadius": 300,
+    "starDepth": 60,
+    "starFactor": 4,
+    "ambientLightIntensity": 0.5,
+    "hemisphereLightIntensity": 0.3,
+    "sunLightIntensity": 6,
+    "sunLightDistance": 500,
+    "sunLightDecay": 0.5,
+    "poiCameraTransitionSpeed": 0.05,
+    "poiTargetTransitionSpeed": 0.08,
+    "overviewReturnSpeed": 0.06,
+    "sphereSegments": 48,
+    "orbitRingSegments": 128
+  },
+  "ui": {
+    "showOrbitRings": true,
+    "showLabels": false,
+    "showHUD": true,
+    "showSimClock": true,
+    "showInfoPanel": true,
+    "orbitRingOpacity": 0.22
+  }
+}

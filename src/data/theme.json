@@ -1,0 +1,38 @@
+{
+  "font": {
+    "family": "Courier New, monospace",
+    "sizeSmall": 12,
+    "sizeBase": 13,
+    "sizeMedium": 14,
+    "sizeLarge": 16,
+    "sizeXLarge": 20,
+    "weightBold": "bold",
+    "weightNormal": "normal"
+  },
+  "colors": {
+    "accent": "#FF6A00",
+    "textPrimary": "#ffffff",
+    "textSecondary": "#cccccc",
+    "textMuted": "#aaaaaa",
+    "textDim": "#888888",
+    "textGreen": "#4CAF50",
+    "panelBg": "rgba(0,0,0,0.82)",
+    "panelBorder": "rgba(255,255,255,0.12)",
+    "sectionBorder": "rgba(255,255,255,0.07)",
+    "handleBorder": "rgba(255,255,255,0.08)",
+    "dragIcon": "rgba(255,255,255,0.25)",
+    "tagBg": "rgba(255,255,255,0.1)",
+    "accentBorder": "rgba(255,106,0,0.4)"
+  },
+  "spacing": {
+    "panelPaddingV": 14,
+    "panelPaddingH": 16,
+    "rowGap": 3,
+    "sectionGapTop": 10
+  },
+  "panel": {
+    "borderRadius": 8,
+    "minWidth": 250,
+    "zIndex": 10
+  }
+}
