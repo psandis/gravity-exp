@@ -22,7 +22,7 @@ function SaturnRings({ radius }) {
 }
 
 function TexturedSphere({ data, isSun }) {
-  const texture = useTexture(data.texture)
+  const texture = useTexture(import.meta.env.BASE_URL + data.texture.slice(1))
   return (
     <meshStandardMaterial
       map={texture}
@@ -47,7 +47,7 @@ function FallbackMaterial({ data, isSun }) {
 }
 
 function ModelBody({ data }) {
-  const { scene } = useGLTF(data.model)
+  const { scene } = useGLTF(import.meta.env.BASE_URL + data.model.slice(1))
   const groupRef = useRef()
   const ready = useRef(false)
 
@@ -153,4 +153,4 @@ export default function CelestialBody({ data, position, onClick, onHover, onHove
   )
 }
 
-useGLTF.preload('/models/ISS_stationary.glb')
+useGLTF.preload(import.meta.env.BASE_URL + 'models/ISS_stationary.glb')
