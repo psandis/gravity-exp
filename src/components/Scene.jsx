@@ -8,17 +8,20 @@ import OrbitRing from './OrbitRing'
 import { orbitalPosition, initialAngleForDate, radiansPerSimDay, addDays } from '../utils/orbital'
 
 const PLANET_KEYS = ['mercury', 'venus', 'earth', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto']
+const EARTH_SATELLITES = planetsData.earth.moons || ['moon']
 const START_DATE = new Date()
 
-// Compute initial angles at module load time so they're ready before first frame
 const INITIAL_ANGLES = Object.fromEntries(
-  [...PLANET_KEYS, 'moon'].map(key => [
+  [...PLANET_KEYS, ...EARTH_SATELLITES].map(key => [
     key,
-    initialAngleForDate(planetsData[key] ?? planetsData.moon, START_DATE)
+    initialAngleForDate(planetsData[key], START_DATE)
   ])
 )
 
-export default function Scene({ speedMultiplier, selected, onSelect, onPositionUpdate, onSimDateUpdate, viewMode, onHover, onHoverEnd, showOrbits, showSelection, orbitOpacity, ambientBrightness, cfg }) {
+const findBodyKey = (name) =>
+  Object.keys(planetsData).find(k => planetsData[k].name === name) || name.toLowerCase()
+
+export default function Scene({ speedMultiplier, selected, onSelect, onPositionUpdate, onSimDateUpdate, viewMode, onHover, onHoverEnd, showOrbits, orbitOpacity, ambientBrightness, cfg }) {
   const anglesRef = useRef({ ...INITIAL_ANGLES })
   const positionsRef = useRef({})
   const simDaysRef = useRef(0)
@@ -43,33 +46,32 @@ export default function Scene({ speedMultiplier, selected, onSelect, onPositionU
   }, [viewMode, selected])
 
   useFrame((_, delta) => {
-    // delta is real seconds; at 1x: 1 real second = 1 sim day
     const simDaysDelta = delta * speedMultiplier
     simDaysRef.current += simDaysDelta
 
     const newPositions = {}
 
-    // Update planet angles (radians per sim day * sim days elapsed)
+    const sceneRadPerDay = (data) =>
+      ((data.sceneDailyMotionDeg ?? data.dailyMotionDeg) * Math.PI / 180)
+
     PLANET_KEYS.forEach(key => {
       const data = planetsData[key]
-      anglesRef.current[key] += radiansPerSimDay(data) * simDaysDelta
+      anglesRef.current[key] += sceneRadPerDay(data) * simDaysDelta
       const pos = orbitalPosition(anglesRef.current[key], data.sceneOrbitRadius)
       positionsRef.current[key] = { ...pos, name: data.name }
       newPositions[data.name] = pos
     })
 
-    // Moon orbits Earth
     const earthPos = positionsRef.current['earth']
     if (earthPos) {
-      anglesRef.current['moon'] += radiansPerSimDay(planetsData.moon) * simDaysDelta
-      const moonLocal = orbitalPosition(anglesRef.current['moon'], planetsData.moon.sceneOrbitRadius)
-      const moonWorld = {
-        x: earthPos.x + moonLocal.x,
-        y: 0,
-        z: earthPos.z + moonLocal.z,
-      }
-      positionsRef.current['moon'] = { ...moonWorld, name: 'Moon' }
-      newPositions['Moon'] = moonWorld
+      EARTH_SATELLITES.forEach(key => {
+        const data = planetsData[key]
+        anglesRef.current[key] += sceneRadPerDay(data) * simDaysDelta
+        const localPos = orbitalPosition(anglesRef.current[key], data.sceneOrbitRadius)
+        const worldPos = { x: earthPos.x + localPos.x, y: 0, z: earthPos.z + localPos.z }
+        positionsRef.current[key] = { ...worldPos, name: data.name }
+        newPositions[data.name] = worldPos
+      })
     }
 
     positionsRef.current['sun'] = { x: 0, y: 0, z: 0 }
@@ -77,23 +79,38 @@ export default function Scene({ speedMultiplier, selected, onSelect, onPositionU
 
     if (viewMode === 'poi' && selected && controlsRef.current) {
       returningToOverview.current = false
-      const key = selected.name === 'Moon' ? 'moon' : selected.name.toLowerCase()
+      const key = findBodyKey(selected.name)
       const pos = positionsRef.current[key]
       if (pos) {
         const newPos = new THREE.Vector3(pos.x, pos.y, pos.z)
         if (!poiReady.current) {
-          // Initial fly-in transition
           const r = selected.sceneRadius
-          const targetCamPos = new THREE.Vector3(pos.x + r * 4, pos.y + r * 2, pos.z + r * 4)
-          controlsRef.current.target.lerp(newPos, cfg?.poiTargetTransitionSpeed ?? 0.08)
-          camera.position.lerp(targetCamPos, cfg?.poiCameraTransitionSpeed ?? 0.05)
-          controlsRef.current.update()
-          if (camera.position.distanceTo(targetCamPos) < 1.0) {
+          const camOffset = selected.scenePoiCamOffset ?? Math.max(r * 4, cfg?.poiMinCamOffset ?? 2.5)
+          const parentKey = selected.parent
+          const parentPos = parentKey ? positionsRef.current[parentKey] : null
+          const refX = parentPos ? pos.x - parentPos.x : pos.x
+          const refZ = parentPos ? pos.z - parentPos.z : pos.z
+          const len = Math.sqrt(refX * refX + refZ * refZ)
+          const dirX = len > 0 ? refX / len : 1
+          const dirZ = len > 0 ? refZ / len : 0
+          const targetCamPos = new THREE.Vector3(pos.x + dirX * camOffset, pos.y + camOffset * 0.5, pos.z + dirZ * camOffset)
+          const fastBody = selected.orbitalPeriodDays > 0 && selected.orbitalPeriodDays < 1
+          if (fastBody) {
+            camera.position.copy(targetCamPos)
+            controlsRef.current.target.copy(newPos)
+            controlsRef.current.update()
             poiReady.current = true
             prevPlanetPos.current.copy(newPos)
+          } else {
+            controlsRef.current.target.lerp(newPos, cfg?.poiTargetTransitionSpeed ?? 0.08)
+            camera.position.lerp(targetCamPos, cfg?.poiCameraTransitionSpeed ?? 0.05)
+            controlsRef.current.update()
+            if (camera.position.distanceTo(targetCamPos) < 1.0) {
+              poiReady.current = true
+              prevPlanetPos.current.copy(newPos)
+            }
           }
         } else {
-          // Tracking: shift camera and target by planet's movement, user rotates freely
           const delta3 = newPos.clone().sub(prevPlanetPos.current)
           camera.position.add(delta3)
           controlsRef.current.target.add(delta3)
@@ -105,13 +122,11 @@ export default function Scene({ speedMultiplier, selected, onSelect, onPositionU
       controlsRef.current.target.lerp(overviewTarget.current, cfg?.overviewReturnSpeed ?? 0.06)
       camera.position.lerp(overviewPos.current, cfg?.overviewReturnSpeed ?? 0.06)
       controlsRef.current.update()
-      const distToTarget = camera.position.distanceTo(overviewPos.current)
-      if (distToTarget < 0.5) returningToOverview.current = false
+      if (camera.position.distanceTo(overviewPos.current) < 0.5) returningToOverview.current = false
     }
 
     onPositionUpdate(newPositions)
 
-    // Throttle sim date updates to ~once per second
     lastDateUpdateRef.current += delta
     if (lastDateUpdateRef.current >= 0.25) {
       lastDateUpdateRef.current = 0
@@ -124,12 +139,12 @@ export default function Scene({ speedMultiplier, selected, onSelect, onPositionU
     return p ? [p.x, 0, p.z] : [planetsData[key].sceneOrbitRadius, 0, 0]
   }
 
-  const getMoonPos = () => {
-    const p = positionsRef.current['moon']
+  const getSatellitePos = (key) => {
+    const p = positionsRef.current[key]
     const e = positionsRef.current['earth']
     if (p) return [p.x, 0, p.z]
-    if (e) return [e.x + planetsData.moon.sceneOrbitRadius, 0, e.z]
-    return [planetsData.earth.sceneOrbitRadius + planetsData.moon.sceneOrbitRadius, 0, 0]
+    if (e) return [e.x + planetsData[key].sceneOrbitRadius, 0, e.z]
+    return [planetsData.earth.sceneOrbitRadius + planetsData[key].sceneOrbitRadius, 0, 0]
   }
 
   return (
@@ -144,9 +159,6 @@ export default function Scene({ speedMultiplier, selected, onSelect, onPositionU
         data={planetsData.sun}
         position={[0, 0, 0]}
         onClick={onSelect}
-        isSelected={selected?.name === 'Sun'}
-        showSelection={showSelection}
-        speedMultiplier={speedMultiplier}
         onHover={onHover}
         onHoverEnd={onHoverEnd}
       />
@@ -158,25 +170,28 @@ export default function Scene({ speedMultiplier, selected, onSelect, onPositionU
             data={planetsData[key]}
             position={getPlanetPos(key)}
             onClick={onSelect}
-            isSelected={selected?.name === planetsData[key].name}
-            showSelection={showSelection}
-            speedMultiplier={speedMultiplier}
             onHover={onHover}
             onHoverEnd={onHoverEnd}
           />
         </group>
       ))}
 
-      <CelestialBody
-        data={planetsData.moon}
-        position={getMoonPos()}
-        onClick={onSelect}
-        isSelected={selected?.name === 'Moon'}
-        showSelection={showSelection}
-        speedMultiplier={speedMultiplier}
-        onHover={onHover}
-        onHoverEnd={onHoverEnd}
-      />
+      {EARTH_SATELLITES.map(key => (
+        <group key={key}>
+          {showOrbits && (
+            <group position={getPlanetPos('earth')}>
+              <OrbitRing radius={planetsData[key].sceneOrbitRadius} opacity={orbitOpacity} />
+            </group>
+          )}
+          <CelestialBody
+            data={planetsData[key]}
+            position={getSatellitePos(key)}
+            onClick={onSelect}
+            onHover={onHover}
+            onHoverEnd={onHoverEnd}
+          />
+        </group>
+      ))}
     </>
   )
 }

@@ -1,5 +1,5 @@
 import { useRef, useState, Suspense, Component } from 'react'
-import { useTexture } from '@react-three/drei'
+import { useTexture, useGLTF } from '@react-three/drei'
 import { useFrame } from '@react-three/fiber'
 import * as THREE from 'three'
 import cfg from '../data/config.json'
@@ -46,13 +46,41 @@ function FallbackMaterial({ data, isSun }) {
   )
 }
 
-export default function CelestialBody({ data, position, onClick, isSelected, showSelection, onHover, onHoverEnd }) {
+function ModelBody({ data }) {
+  const { scene } = useGLTF(data.model)
   const groupRef = useRef()
-  const [hovered, setHovered] = useState(false)
+  const ready = useRef(false)
+
+  useFrame(() => {
+    if (ready.current || !groupRef.current) return
+    const box = new THREE.Box3().setFromObject(groupRef.current)
+    const size = new THREE.Vector3()
+    box.getSize(size)
+    const maxDim = Math.max(size.x, size.y, size.z)
+    if (maxDim === 0) return
+    const s = (data.sceneRadius * 2) / maxDim
+    const center = new THREE.Vector3()
+    box.getCenter(center)
+    groupRef.current.scale.setScalar(s)
+    groupRef.current.position.set(-center.x * s, -center.y * s, -center.z * s)
+    groupRef.current.visible = true
+    ready.current = true
+  })
+
+  return (
+    <group ref={groupRef} visible={false}>
+      <primitive object={scene} />
+    </group>
+  )
+}
+
+export default function CelestialBody({ data, position, onClick, onHover, onHoverEnd }) {
+  const groupRef = useRef()
   const isSun = data.type === 'star'
+  const hasModel = !!data.model
 
   useFrame((_, delta) => {
-    if (groupRef.current) {
+    if (groupRef.current && data.visualRotation !== false) {
       groupRef.current.rotation.y += ROTATION_RATE * delta
     }
   })
@@ -61,42 +89,68 @@ export default function CelestialBody({ data, position, onClick, isSelected, sho
   const handleOver = (e) => {
     e.stopPropagation()
     document.body.style.cursor = 'pointer'
-    setHovered(true)
     onHover(data, e.clientX, e.clientY)
   }
   const handleMove = (e) => { onHover(data, e.clientX, e.clientY) }
   const handleOut = () => {
     document.body.style.cursor = 'auto'
-    setHovered(false)
     onHoverEnd()
   }
 
   return (
     <group position={position}>
       <group ref={groupRef}>
-        <mesh
-          onClick={handleClick}
-          onPointerOver={handleOver}
-          onPointerMove={handleMove}
-          onPointerOut={handleOut}
-        >
-          <sphereGeometry args={[data.sceneRadius, 48, 48]} />
-          <ErrorBoundary fallback={<FallbackMaterial data={data} isSun={isSun} />}>
-            <Suspense fallback={<FallbackMaterial data={data} isSun={isSun} />}>
-              <TexturedSphere data={data} isSun={isSun} />
-            </Suspense>
-          </ErrorBoundary>
-        </mesh>
+        {hasModel ? (
+          <>
+            <mesh
+              onClick={handleClick}
+              onPointerOver={handleOver}
+              onPointerMove={handleMove}
+              onPointerOut={handleOut}
+            >
+              <sphereGeometry args={[data.sceneRadius, 16, 16]} />
+              <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+            </mesh>
+            <ErrorBoundary fallback={
+              <mesh>
+                <sphereGeometry args={[data.sceneRadius, 16, 16]} />
+                <FallbackMaterial data={data} isSun={false} />
+              </mesh>
+            }>
+              <Suspense fallback={
+                <mesh>
+                  <sphereGeometry args={[data.sceneRadius, 16, 16]} />
+                  <meshStandardMaterial color={data.color} metalness={0.6} roughness={0.3} />
+                </mesh>
+              }>
+                <ModelBody data={data} />
+              </Suspense>
+            </ErrorBoundary>
+          </>
+        ) : (
+          <mesh
+            onClick={handleClick}
+            onPointerOver={handleOver}
+            onPointerMove={handleMove}
+            onPointerOut={handleOut}
+          >
+            <sphereGeometry args={[data.sceneRadius, 48, 48]} />
+            {data.texture ? (
+              <ErrorBoundary fallback={<FallbackMaterial data={data} isSun={isSun} />}>
+                <Suspense fallback={<FallbackMaterial data={data} isSun={isSun} />}>
+                  <TexturedSphere data={data} isSun={isSun} />
+                </Suspense>
+              </ErrorBoundary>
+            ) : (
+              <FallbackMaterial data={data} isSun={isSun} />
+            )}
+          </mesh>
+        )}
       </group>
 
       {data.hasRings && <SaturnRings radius={data.sceneRadius} />}
-
-      {isSelected && showSelection !== false && (
-        <mesh>
-          <sphereGeometry args={[data.sceneRadius * 1.08, 32, 32]} />
-          <meshBasicMaterial color="#ffffff" wireframe opacity={0.15} transparent />
-        </mesh>
-      )}
     </group>
   )
 }
+
+useGLTF.preload('/models/ISS_stationary.glb')

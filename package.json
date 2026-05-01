@@ -1,7 +1,19 @@
 {
   "name": "gravityexp",
-  "version": "0.1.0",
-"type": "module",
+  "version": "0.2.0",
+  "description": "3D solar system explorer with real orbital mechanics, NASA textures, and interactive POI camera",
+  "keywords": ["solar-system", "threejs", "react-three-fiber", "orbital-mechanics", "3d", "webgl", "astronomy", "space", "vite"],
+  "author": "psandis",
+  "license": "MIT",
+  "homepage": "https://psandis.github.io/gravity-exp/",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/psandis/gravity-exp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/psandis/gravity-exp/issues"
+  },
+  "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

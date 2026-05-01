@@ -77,7 +77,7 @@
     "description": "Earth is the third planet from the Sun and the only known planet to harbor life. It has liquid water, a protective magnetic field, and a breathable atmosphere.",
     "weightMultiplier": 1.0,
     "wikipediaKey": "Earth",
-    "moons": ["moon"]
+    "moons": ["moon", "iss"]
   },
   "mars": {
     "name": "Mars",
@@ -200,6 +200,32 @@
     "description": "Pluto is a dwarf planet in the Kuiper Belt, reclassified from planet status in 2006. It has a complex surface with mountains of water ice and a heart-shaped nitrogen ice plain.",
     "weightMultiplier": 0.063,
     "wikipediaKey": "Pluto"
+  },
+  "iss": {
+    "name": "International Space Station",
+    "shortName": "ISS",
+    "type": "station",
+    "parent": "earth",
+    "radiusKm": 0.109,
+    "massKg": 420000,
+    "surfaceGravity": 0,
+    "surfaceTempC": 22,
+    "distanceFromSunAU": 1.0,
+    "orbitalPeriodDays": 0.06436,
+    "rotationPeriodDays": 0.06436,
+    "sceneRadius": 0.25,
+    "sceneOrbitRadius": 1.6,
+    "sceneDailyMotionDeg": 30,
+    "scenePoiCamOffset": 1.5,
+    "visualRotation": false,
+    "meanLongitudeJ2000": 45,
+    "dailyMotionDeg": 5593.8,
+    "color": "#C0C0C0",
+    "texture": null,
+    "model": "/models/ISS_stationary.glb",
+    "description": "The International Space Station is a modular space station in low Earth orbit, a collaboration between NASA, ESA, JAXA, Roscosmos, and CSA. It orbits Earth every 92 minutes at an altitude of approximately 408 km.",
+    "weightMultiplier": 0,
+    "wikipediaKey": "International_Space_Station"
   },
   "moon": {
     "name": "Moon",

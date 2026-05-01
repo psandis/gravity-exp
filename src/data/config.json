@@ -6,6 +6,7 @@
     "cameraFov": 60,
     "cameraStartPosition": [0, 40, 80],
     "orbitMinDistance": 2,
+    "poiMinCamOffset": 2.5,
     "orbitMaxDistance": 200,
     "orbitDampingFactor": 0.05,
     "starCount": 6000,

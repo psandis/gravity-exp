@@ -19,7 +19,6 @@ export default function App() {
 
   // Display panel state
   const [showOrbits, setShowOrbits] = useState(cfg.ui.showOrbitRings)
-  const [showSelection, setShowSelection] = useState(true)
   const [showSimClock, setShowSimClock] = useState(cfg.ui.showSimClock)
   const [orbitOpacity, setOrbitOpacity] = useState(cfg.ui.orbitRingOpacity)
   const [ambientBrightness, setAmbientBrightness] = useState(cfg.scene.ambientLightIntensity)
@@ -50,6 +49,11 @@ export default function App() {
     setTooltip(null)
   }, [])
 
+  const handleJump = useCallback((body) => {
+    setSelected(body)
+    setViewMode('poi')
+  }, [])
+
   return (
     <div style={{ width: '100vw', height: '100vh', position: 'relative', background: '#000' }}>
       <Canvas
@@ -67,7 +71,6 @@ export default function App() {
           onHoverEnd={handleHoverEnd}
           viewMode={viewMode}
           showOrbits={showOrbits}
-          showSelection={showSelection}
           orbitOpacity={orbitOpacity}
           ambientBrightness={ambientBrightness}
           cfg={cfg.scene}
@@ -85,10 +88,10 @@ export default function App() {
           speedMultiplier={speedMultiplier}
           viewMode={viewMode}
           showOrbits={showOrbits} onToggleOrbits={() => setShowOrbits(v => !v)}
-          showSelection={showSelection} onToggleSelection={() => setShowSelection(v => !v)}
           showSimClock={showSimClock} onToggleSimClock={() => setShowSimClock(v => !v)}
           orbitOpacity={orbitOpacity} onOrbitOpacityChange={setOrbitOpacity}
           ambientBrightness={ambientBrightness} onAmbientBrightnessChange={setAmbientBrightness}
+          onJump={handleJump}
         />
       )}
 

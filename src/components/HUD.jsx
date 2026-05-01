@@ -1,16 +1,19 @@
 import { useRef, useState, useEffect } from 'react'
 import { formatMass, formatDistance } from '../utils/orbital'
 import theme from '../data/theme.json'
+import planetsData from '../data/planets.json'
 
 const { colors, font, panel, spacing } = theme
+
+const JUMP_ORDER = ['sun', 'mercury', 'venus', 'earth', 'moon', 'mars', 'jupiter', 'saturn', 'uranus', 'neptune', 'pluto', 'iss']
 
 export default function HUD({
   selected, positions, speedMultiplier, viewMode,
   showOrbits, onToggleOrbits,
-  showSelection, onToggleSelection,
   showSimClock, onToggleSimClock,
   orbitOpacity, onOrbitOpacityChange,
   ambientBrightness, onAmbientBrightnessChange,
+  onJump,
 }) {
   const pos = positions[selected?.name] || { x: 0, y: 0, z: 0 }
   const panelRef = useRef()
@@ -69,11 +72,23 @@ export default function HUD({
           <div style={s.displayPanel}>
             <div style={s.displaySection}>VISIBILITY</div>
             <ToggleRow label="Orbit Rings" value={showOrbits} onToggle={onToggleOrbits} />
-            <ToggleRow label="Selection Ring" value={showSelection} onToggle={onToggleSelection} />
             <ToggleRow label="Sim Clock" value={showSimClock} onToggle={onToggleSimClock} />
             <div style={s.displaySection}>ADJUSTMENTS</div>
             <SliderRow label="Orbit Opacity" value={orbitOpacity} min={0} max={0.8} step={0.01} onChange={onOrbitOpacityChange} />
             <SliderRow label="Brightness" value={ambientBrightness} min={0} max={2} step={0.05} onChange={onAmbientBrightnessChange} />
+            <div style={s.displaySection}>QUICK JUMP</div>
+            <select
+              style={s.jumpSelect}
+              value={selected ? JUMP_ORDER.find(k => planetsData[k].name === selected.name) || '' : ''}
+              onChange={e => { if (e.target.value) onJump(planetsData[e.target.value]) }}
+            >
+              <option value="">Select body...</option>
+              {JUMP_ORDER.map(key => (
+                <option key={key} value={key}>
+                  {planetsData[key].shortName || planetsData[key].name}
+                </option>
+              ))}
+            </select>
           </div>
         )}
 
@@ -325,5 +340,26 @@ const s = {
   },
   label: {
     color: colors.textMuted,
+  },
+  jumpSelect: {
+    width: '100%',
+    background: 'rgba(255,255,255,0.04)',
+    border: `1px solid ${colors.sectionBorder}`,
+    borderRadius: panel.borderRadius - 4,
+    color: colors.textMuted,
+    fontFamily: font.family,
+    fontSize: font.sizeSmall,
+    letterSpacing: 1,
+    padding: `${spacing.rowGap + 3}px ${spacing.panelPaddingH - 6}px`,
+    cursor: 'pointer',
+    marginBottom: spacing.sectionGapTop,
+    outline: 'none',
+    appearance: 'none',
+    WebkitAppearance: 'none',
+    MozAppearance: 'none',
+    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E")`,
+    backgroundRepeat: 'no-repeat',
+    backgroundPosition: `right ${spacing.panelPaddingH - 6}px center`,
+    paddingRight: spacing.panelPaddingH + 10,
   },
 }
